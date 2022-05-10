@@ -1,0 +1,18 @@
+*.qgz
+*.area
+*.map
+*.sct
+*.ese
+*.rwy
+*.geojson
+.vscode
+ES converted data
+Dev Files
+euroscope_exporter
+fileUtilities
+Input/GeoJSON/*
+output/*
+QGIS.code-workspace
+GUI.py
+colors.json
+NOVA
