@@ -38,6 +38,8 @@ import math
 
 # First, to facilitate parsing, create a dictionary that holds all entries, split into the different ES
 # categories used. This dict is initialized empty to prevent issues with python variable handling
+# The AIRAC variable is used to create the GNG comment that is used to keep track of when changes were inserted, 
+# at VACC CH the value thereof is always that of the Cycle when the changes will be published (thus usually one cycle ahead).
 
 AIRAC = "2206"
 
@@ -71,6 +73,8 @@ gngData = {
     }
 }
 
+# The globalDebugging variable provides additional debugging information in the logfile in the output folder. There are other, local debugging variables
+# that are by default set to mirror the globalDebugging variable, however they can be overridden if you only want to debug any one variable.
 
 globalDebugging = False
 if globalDebugging:
@@ -96,7 +100,7 @@ eseHeaderPath = path.dirname(__file__) + "\\Input\\Configuration\\ese_File_Heade
 outputFolder = path.dirname(__file__) + "\\Output\\"                                                        # Output folder location
 
 if globalDebugging:
-    print("Folder paths:\n  Definitions File: " + defFilePath + "\n  geoJSON Folder: " + geoJSONFolderPath + "\n  .SCT  header File: " + sctHeaderPath + "\n  .ESE  header File: " + eseHeaderPath + "\n  Output Folder: " + outputFolder)
+    log += ("Folder paths:\n  Definitions File: " + defFilePath + "\n  geoJSON Folder: " + geoJSONFolderPath + "\n  .SCT  header File: " + sctHeaderPath + "\n  .ESE  header File: " + eseHeaderPath + "\n  Output Folder: " + outputFolder + "\n")
 
 # Here we check whether the output folder exists, if not we create it.
 
@@ -104,18 +108,16 @@ if not path.isdir(outputFolder):
     mkdir(outputFolder)
     log += "Creating output folder at " +  outputFolder + "\n"
 
-# Here we define a function to read the definitions file and then dump it into a global dict for easy access
+# Here we define a function to read the definitions file and then dump it into a global dict for easy access, and then run said function
 
 def readDefinitions ():
     with open (defFilePath) as defFile:
         global definitions
         definitions = load(defFile)
 
-# Now to initially grab all definitions, we run the function defined above
-
 readDefinitions()
 
-# This is a quick helper function to convert coordinates from QGIS (DDD.ddddd) to EuroScope (DDD.MM.SS.sss) Format 
+# This is a quick helper function to convert coordinates from QGIS (DDD.ddddd) to EuroScope (DDD.MM.SS.sss) Format and prefix the hemispheres
 
 def decimalDegreesToESNotation(coordinatePair):
     north = coordinatePair[1]
@@ -166,10 +168,11 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
 
     # Secondly we check what kind of a feature type we're dealing with and extracting the coordinate list accordingly, this is necessary due to a nesting 
     # quirk of GeoJSON where polygons are nested deeper than lines, which are nested deeper than points. The check for holes in polygons has already been
-    # implemented, however they are currently not yet processed.
+    # implemented, currently they're just assigned the color value of the backgrround as defined in definitions. This function also deals with "downgrading" 
+    # features between feature types, i.e. mapping a polygon to a line feature.
 
     if debugging:
-        print("Feature Type of working feature is: " + featureObject["Feature Type"])
+        log += ("Feature Type of working feature is: " + featureObject["Feature Type"])
 
     if len(featureObject["Coordinates"]) == 0:
         log += "Found an empty feature of group " + featureObject["Group"] + ", skipping."
@@ -190,9 +193,7 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
                 log += "Tried mapping a point feature or a feature of unknown type of group " + featureObject["Group"] + " to a Euroscope geo line.\n"
                 return -1
         else:
-            coordinates = featureObject["Coordinates"]
-
-            
+            coordinates = featureObject["Coordinates"]         
     elif featureObject["Feature Type"] == "Point":
         if not featureType == "Point":
             if featureType == "MultiPolygon":
@@ -204,8 +205,12 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
         else:
             coordinates = featureObject["Coordinates"]
     else:
-        print("Something went wrong with a feature object at " + featureObject["Group"] + " which has an invalid feature type (" + featureObject["Feature Type"] + ")")
+        log += ("Something went wrong with a feature object at " + featureObject["Group"] + " which has an invalid feature type (" + featureObject["Feature Type"] + ")")
         return -1
+    
+    # Here we assign a priority to certain layers. This should only be defined for regions layers, however if it happens for any other layers it doesn't 
+    # matter, it'll just be disregarded
+
     if "Priority" in featureObject:
         priority = featureObject["Priority"]
 
@@ -220,26 +225,26 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
                 "Formatted Region":""
             }
         if debugging:
-            print("This Region Feature has a length of " + str(len(coordinates)))
+            log += ("This Region Feature has a length of " + str(len(coordinates)))
 
         # I have to make sure I catch any possible holes in the polygon, those would be a second item in the enclosing 
         # list for the multipolygon feature in the geoJSON, so I iterate over the list containing the coordinate lists
 
         for i in range(len(coordinates)):
             if debugging:
-                print("  Currently working on layer " + str(i + 1) + "/" + str(len(coordinates)))
+                log += ("  Currently working on layer " + str(i + 1) + "/" + str(len(coordinates)))
 
             # Defining the current coordinate list as the current item in the list of all coordinate lists
 
             currentCoordsList = coordinates[i]
 
-            # Set the color for all objects except for the base layer object to grass
+            # Set the color for all objects except for the base layer object to the defined hole color
 
             if not i == 0:
                 if debugging:
-                    print("    Setting Color to grass for hole")
+                    log += ("    Setting Color to grass for hole")
                 #color = "11823615"    # Hot Pink for debugging purposes
-                color = "COLOR_AoRground1"
+                color = "COLOR_" + definitions["Colors"]["Hole Color"]
             
             # Figure out what the first set of coordinates is as those are prefixed with the color for the entire region
 
@@ -291,6 +296,8 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
 
         return coordinateText
 
+    # And lastly, freetext, which is the simplest of the feature types as it only covers one point per item
+
     elif featureObject["ES Category"] == "freetext":
         if "Label" in featureObject:
             outputText = decimalDegreesToESNotation(coordinates).replace(" ",":") + ":" + featureObject["Group"] + ":" + featureObject["Label"] + "\n"
@@ -300,9 +307,13 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
             return -1
 
 
-    # If we're dealing with any other feature type (currently freetext falls into this) I return -1 to prevent the function calling this from complaining.
+    # If we're dealing with any other feature type (this should only happen with faulty definitions) I return -1 to prevent the function calling 
+    # this from complaining.
 
     return -1
+
+# And because it was so much fun we'll do it all over again, this time for GNG formatted items. There's a few formatting differences that I catch this way 
+# (namely, GNG knows no indenting), but for the most part the functions inside are identical.
 
 def formatFeatureForGng (featureObject,featureType,debugging=False):
 
@@ -317,10 +328,10 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
 
     # Secondly we check what kind of a feature type we're dealing with and extracting the coordinate list accordingly, this is necessary due to a nesting 
     # quirk of GeoJSON where polygons are nested deeper than lines, which are nested deeper than points. The check for holes in polygons has already been
-    # implemented, however they are currently not yet processed.
+    # implemented, they are currently assigned a fixed color from the definitions.
 
     if debugging:
-        print("Feature Type of working feature is: " + featureObject["Feature Type"])
+        log += ("Feature Type of working feature is: " + featureObject["Feature Type"])
 
     if len(featureObject["Coordinates"]) == 0:
         log += "Found an empty feature of group " + featureObject["Group"] + ", skipping."
@@ -353,7 +364,7 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
         else:
             coordinates = featureObject["Coordinates"]
     else:
-        print("Something went wrong with a feature object at " + featureObject["Group"] + " which has an invalid feature type (" + featureObject["Feature Type"] + ")")
+        log += ("Something went wrong with a feature object at " + featureObject["Group"] + " which has an invalid feature type (" + featureObject["Feature Type"] + ")")
         return -1
     if "Priority" in featureObject:
         priority = featureObject["Priority"]
@@ -370,14 +381,14 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
                 "Formatted Region":""
             }
         if debugging:
-            print("This Region Feature has a length of " + str(len(coordinates)))
+            log += ("This Region Feature has a length of " + str(len(coordinates)))
 
         # I have to make sure I catch any possible holes in the polygon, those would be a second item in the enclosing 
         # list for the multipolygon feature in the geoJSON, so I iterate over the list containing the coordinate lists
 
         for i in range(len(coordinates)):
             if debugging:
-                print("  Currently working on layer " + str(i + 1) + "/" + str(len(coordinates)))
+                log += ("  Currently working on layer " + str(i + 1) + "/" + str(len(coordinates)))
 
             # Defining the current coordinate list as the current item in the list of all coordinate lists
 
@@ -387,7 +398,7 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
 
             if not i == 0:
                 if debugging:
-                    print("    Setting Color to grass for hole")
+                    log += ("    Setting Color to grass for hole")
                 #color = "11823615"    # Hot Pink for debugging purposes
                 color = "COLOR_AoRground1"
             
@@ -436,6 +447,8 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
 
         return featureDict
 
+    # And lastly, freetext, which is the simplest of the feature types as it only covers one point per item
+
     elif featureObject["ES Category"] == "freetext":
         if "Label" in featureObject:
             airportICAO = featureObject["Group"][:4]
@@ -448,7 +461,8 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
             return -1
 
 
-    # If we're dealing with any other feature type (currently freetext falls into this) I return -1 to prevent the function calling this from complaining.
+    # If we're dealing with any other feature type (this should only happen with faulty definitions) I return -1 to prevent the function calling 
+    # this from complaining.
 
     return -1
 
@@ -460,6 +474,7 @@ def categoryMapping(category,airport,debugging = False):
     global log
 
     # If the category is not defined it can obviously not be mapped so we write to the log file and skip out of the function
+
     if category == None:
         log += "Skipping feature because of missing category in file "
         return -1
@@ -479,19 +494,27 @@ def categoryMapping(category,airport,debugging = False):
     outputObject = dict(mappedObject["default"])
 
     if debugging:
-        print ("Input Category: " + category + "\n  Default Group: " + outputObject["Group"])
+        log += ("Input Category: " + category + "\n  Default Group: " + outputObject["Group"])
 
     # If I have found any suffixes I'll iterate through them and look for them in the definitions file, if they're defined we overwrite the default
     # info with the suffix info where it differs.
+    
     if len(splitCat) > 1:
+
+        # Because grass features sometimes lead to trouble here's an easy way to make sure they're actually found by the script
         if "gr" in splitCat and debugging:
-            print("Found a Grass feature for airport " + airport + str(splitCat))
+            log += ("Found a Grass feature for airport " + airport + str(splitCat))
+
         suffix = splitCat[1]
+
         if debugging:
-            print("  Now working on suffix " + suffix)
+            log += ("  Now working on suffix " + suffix)
+
+        # If a suffix doesn't exist for a certain category that has to be caught which is done with this function
         if not suffix in mappedObject["suffixes"]:
             log += "Unknown suffix " + suffix + " to category " + mainCategory + " found in file "
             return -1
+
         suffixDescription = mappedObject["suffixes"][suffix]
         for key in suffixDescription:
             if not key =="Additional Suffixes":
@@ -514,7 +537,7 @@ def categoryMapping(category,airport,debugging = False):
     outputObject["Group"] = outputObject["Group"].replace("$airport",airport)
 
     if debugging:
-        print("Output:\n  Group: " + outputObject["Group"] + "\n  ES Category: " + outputObject["ES Category"])
+        log += ("Output:\n  Group: " + outputObject["Group"] + "\n  ES Category: " + outputObject["ES Category"])
 
     # If everything worked fine we can now return the object we just created wit the mapped info
 
@@ -530,7 +553,7 @@ def esColorCode(colorHex,debugging = False):
     blue = int(hexString[4:],16)
     decString = str(blue * 65536 + green * 256 + red)
     if debugging:
-        print("Red: " + str(red) + ", Green: " + str(green) + ", Blue: " + str(blue))
+        log += ("Color Hex value #" + hexString + " converted to Red: " + str(red) + ", Green: " + str(green) + ", Blue: " + str(blue) + "\n")
     return decString
 
 # This is one of the big bois, it reads a single GeoJSON file and parses it into the respective categories
@@ -604,7 +627,7 @@ def readGeoJSONFile(path,debugging = False):
 
         if not color == None:
             if debugging:
-                print("Setting custom color " + color)
+                log += ("Setting custom color " + color + "\n")
 
             # First let's deal with anything that isn't a hex code as we need to look those up.
 
@@ -617,21 +640,21 @@ def readGeoJSONFile(path,debugging = False):
                         if defColor["Tag"] == color:
                             featureObject["Color"] = defColor["Color"]
                             if debugging:
-                                print("  Custom Color " + featureObject["Color"] + " set!")
+                                log += ("  Custom Color " + featureObject["Color"] + " set!" + "\n")
                 
                 # Any other color *should* be one already defined in the sector file so we can just write it into field
 
                 else:
                     featureObject["Color"] = color
                     if debugging:
-                        print("  Custom Color " + featureObject["Color"] + " set!")
+                        log += ("  Custom Color " + featureObject["Color"] + " set!" + "\n")
             
             # Here we deal with the hex code defined colors, they're just passed to the appropriate function.
             
             else:
                 featureObject["Color"] = esColorCode(color)
                 if debugging:
-                    print("  Custom Color " + featureObject["Color"] + " set!")
+                    log += ("  Custom Color " + featureObject["Color"] + " set!" + "\n")
 
         # This is a little bit of a special case, there's a few definitions that use hex codes by default, we need to catch those
 
@@ -674,6 +697,7 @@ def readGeoJSONFile(path,debugging = False):
 def sortRegions(target="euroscope",debugging=False):
     global esData
     global gngData
+    global log
     if target == "euroscope":
         sortedList = []
         for feature in esData["regions"]["Features"]:
@@ -683,12 +707,12 @@ def sortRegions(target="euroscope",debugging=False):
                 for i in range(len(sortedList)):
                     if feature["Priority"] < sortedList[i]["Priority"]:
                         if debugging:
-                            print("Inserting because " + str(feature["Priority"]) + " is less than " + str(sortedList[i]["Priority"]))
+                            log += ("Inserting because " + str(feature["Priority"]) + " is less than " + str(sortedList[i]["Priority"]) + "\n")
                         sortedList.insert(i, feature)
                         break
                     elif i == len(sortedList) - 1:
                         if debugging:
-                            print("Inserting because I've reached the end of the list")
+                            log += ("Inserting because I've reached the end of the list" + "\n")
                         sortedList.append(feature)
         esData["regions"]["Features"] = list(sortedList)
 
@@ -704,19 +728,19 @@ def sortRegions(target="euroscope",debugging=False):
                     for i in range(len(gngSortedList)):
                         if feature["Priority"] < gngSortedList[i]["Priority"]:
                             if debugging:
-                                print("Inserting because " + str(feature["Priority"]) + " is less than " + str(gngSortedList[i]["Priority"]))
+                                log += ("Inserting because " + str(feature["Priority"]) + " is less than " + str(gngSortedList[i]["Priority"]) + "\n")
                             gngSortedList.insert(i, feature)
                             break
                         elif i == len(gngSortedList) - 1:
                             if debugging:
-                                print("Inserting because I've reached the end of the list")
+                                log += ("Inserting because I've reached the end of the list" + "\n")
                             gngSortedList.append(feature)
             gngData["regions"]["Features"][key] = {"Output String":"","Features":list(gngSortedList)}
 
             for feature in gngSortedList:
                 gngData["regions"]["Features"][key]["Output String"] += feature["Formatted Region"] + "\n"
     else:
-        print("Something broke while sorting, check target " + target + " is correct, because the code is stukkie wukkie, mss could you better sort by hand owo.")
+        log += ("Something broke while sorting, check target " + target + " is correct, because the code is stukkie wukkie, mss could you better sort by hand owo." + "\n")
 
 # This is the function that reads the entire folder and finds all the readable files in there, then reads them one by one
 
@@ -736,6 +760,8 @@ def readFolder(folderPath,debugging=False):
 readFolder(geoJSONFolderPath,globalDebugging)
 
 sortRegions()
+
+# This is another helper function that converts color codes back from ES decimal format into a "human readable" hex code 
 
 def hexColorCode(decimalColor):
     blue = int(decimalColor / 65536)
@@ -782,7 +808,7 @@ def writeSctFile():
     with open (sctFilePath,'w') as generatedSectorfile:
         generatedSectorfile.write(contents)
 
-# And finally we write the ese file as a last step
+# Next we write the ese file
 
 def writeEseFile():
 
@@ -799,11 +825,15 @@ def writeEseFile():
     with open (eseFilePath,'w') as generatedSectorfile:
         generatedSectorfile.write(contents)
 
+# And finally a bit of a different approach for the GNG text files, here we have a file handling function that only deals with the actual file operations
+
 def writeGngFile(filetype,string):
     global dateStringLong
     gngRegionsFilePath = outputFolder + "GNG_" + filetype + "_Export-" + dateStringLong + ".txt"
     with open (gngRegionsFilePath, 'w') as gngRegionsFile:
         gngRegionsFile.write(string)
+
+# While down here we deal with getting the features actually formatted to the GNG conventions
 
 def formatForGng():
     global gngData
@@ -833,10 +863,15 @@ writeSctFile()
 writeEseFile()
 formatForGng()
 
+# And lastly, a bit of a dummy check, if there's any colours that were used in the sector filed that are not defined in GNG 
+# this will note that down in the log file, as this can lead to hard to trace errors in Euroscope's file reading.
+
 for color in colorsUsed:
+    if color == "":
+        continue
     found = False
     for entry in definitions["Colors"]["Sector File Colors"]:
         if entry["Name"] == color:
             found = True
     if not found:
-        print("Color " + color + " either misspelled or not defined!")
+        log += ("Color " + color + " either misspelled or not defined!")

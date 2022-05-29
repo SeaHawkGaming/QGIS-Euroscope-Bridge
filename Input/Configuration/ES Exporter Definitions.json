@@ -385,7 +385,8 @@
                 "Hex":"#900090",
                 "Color":"TaxiwayPurple"
             }
-        ]
+        ],
+        "Hole Color": "AoRground1"
     },    
     "Category Mapping": {
         "prkg": {
