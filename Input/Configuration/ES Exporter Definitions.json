@@ -111,19 +111,19 @@
             },
             {
                 "Name": "GrasSurface",
-                "Hex": "#212121"
-            },
-            {
-                "Name": "GrasSurface2",
                 "Hex": "#404741"
             },
             {
+                "Name": "GrasSurface2",
+                "Hex": "#27302b"
+            },
+            {
                 "Name": "GrasSurface3",
-                "Hex": "#008800"
+                "Hex": "#474747"
             },
             {
                 "Name": "GrasSurface4",
-                "Hex": "#27302b"
+                "Hex": "#202a30"
             },
             {
                 "Name": "HardSurface1",

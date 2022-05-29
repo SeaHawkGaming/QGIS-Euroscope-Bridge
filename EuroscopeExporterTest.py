@@ -39,6 +39,8 @@ import math
 # First, to facilitate parsing, create a dictionary that holds all entries, split into the different ES
 # categories used. This dict is initialized empty to prevent issues with python variable handling
 
+AIRAC = "2206"
+
 esData = {
     "geo":{
         "Output String":"",
@@ -809,20 +811,20 @@ def formatForGng():
     for layer in gngData["regions"]["Features"]:
         airport = layer[:4]
         layername = layer[5:]
-        header = "AERONAV:" + airport + ":" + layername + ":ES,VRC:QGIS 2205\n"
+        header = "AERONAV:" + airport + ":" + layername + ":ES,VRC:QGIS " + AIRAC + "\n"
         gngData["regions"]["Output String"] += header + gngData["regions"]["Features"][layer]["Output String"] + "\n"
     for layerName in gngData["geo"]["Features"]:
         layer = gngData["geo"]["Features"][layerName]
         airport = layer["Airport"]
         category = layer["Category"]
         name = layer["Name"]
-        header = ":".join(["AERONAV",airport,category,name,"","GEO","","QGIS 2205\n"])
+        header = ":".join(["AERONAV",airport,category,name,"","GEO","","QGIS " + AIRAC + "\n"])
         gngData["geo"]["Output String"] += header + layer["Code"] + "\n"
     for layerName in gngData["freetext"]["Features"]:
         layer = gngData["freetext"]["Features"][layerName]
         airport = layer["Airport"]
         labelgroup = layer["Labelgroup"]
-        header = ":".join(["AERONAV",airport,labelgroup,"ES-ESE","QGIS 2205\n"])
+        header = ":".join(["AERONAV",airport,labelgroup,"ES-ESE","QGIS " + AIRAC + "\n"])
         gngData["freetext"]["Output String"] += header + layer["Code"] + "\n\n"
     for fileType in gngData:
         writeGngFile(fileType,gngData[fileType]["Output String"])
