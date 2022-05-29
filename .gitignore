@@ -5,12 +5,14 @@
 *.ese
 *.rwy
 *.geojson
+*.bak
 .vscode
 ES converted data
 Dev Files
 euroscope_exporter
 fileUtilities
 Input/GeoJSON/*
+!Input/GeoJSON/readme.md
 output/*
 QGIS.code-workspace
 GUI.py
