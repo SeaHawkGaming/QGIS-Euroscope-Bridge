@@ -172,10 +172,10 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
     # features between feature types, i.e. mapping a polygon to a line feature.
 
     if debugging:
-        log += ("Feature Type of working feature is: " + featureObject["Feature Type"])
+        log += ("Feature Type of working feature is: " + featureObject["Feature Type"] + "\n")
 
     if len(featureObject["Coordinates"]) == 0:
-        log += "Found an empty feature of group " + featureObject["Group"] + ", skipping."
+        log += "Found an empty feature of group " + featureObject["Group"] + ", skipping." + "\n"
         return -1
     if featureObject["Feature Type"] == "Polygon":
         if not featureType == "MultiPolygon":
@@ -205,7 +205,7 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
         else:
             coordinates = featureObject["Coordinates"]
     else:
-        log += ("Something went wrong with a feature object at " + featureObject["Group"] + " which has an invalid feature type (" + featureObject["Feature Type"] + ")")
+        log += ("Something went wrong with a feature object at " + featureObject["Group"] + " which has an invalid feature type (" + featureObject["Feature Type"] + ")" + "\n")
         return -1
     
     # Here we assign a priority to certain layers. This should only be defined for regions layers, however if it happens for any other layers it doesn't 
@@ -225,14 +225,14 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
                 "Formatted Region":""
             }
         if debugging:
-            log += ("This Region Feature has a length of " + str(len(coordinates)))
+            log += ("This Region Feature has a length of " + str(len(coordinates)) + "\n")
 
         # I have to make sure I catch any possible holes in the polygon, those would be a second item in the enclosing 
         # list for the multipolygon feature in the geoJSON, so I iterate over the list containing the coordinate lists
 
         for i in range(len(coordinates)):
             if debugging:
-                log += ("  Currently working on layer " + str(i + 1) + "/" + str(len(coordinates)))
+                log += ("  Currently working on layer " + str(i + 1) + "/" + str(len(coordinates)) + "\n")
 
             # Defining the current coordinate list as the current item in the list of all coordinate lists
 
@@ -242,7 +242,7 @@ def formatFeatureForES (featureObject,featureType,debugging=False):
 
             if not i == 0:
                 if debugging:
-                    log += ("    Setting Color to grass for hole")
+                    log += ("    Setting Color to grass for hole" + "\n")
                 #color = "11823615"    # Hot Pink for debugging purposes
                 color = "COLOR_" + definitions["Colors"]["Hole Color"]
             
@@ -331,10 +331,10 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
     # implemented, they are currently assigned a fixed color from the definitions.
 
     if debugging:
-        log += ("Feature Type of working feature is: " + featureObject["Feature Type"])
+        log += ("Feature Type of working feature is: " + featureObject["Feature Type"] + "\n")
 
     if len(featureObject["Coordinates"]) == 0:
-        log += "Found an empty feature of group " + featureObject["Group"] + ", skipping."
+        log += "Found an empty feature of group " + featureObject["Group"] + ", skipping." + "\n"
         return -1
     if featureObject["Feature Type"] == "Polygon":
         if not featureType == "MultiPolygon":
@@ -364,7 +364,7 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
         else:
             coordinates = featureObject["Coordinates"]
     else:
-        log += ("Something went wrong with a feature object at " + featureObject["Group"] + " which has an invalid feature type (" + featureObject["Feature Type"] + ")")
+        log += ("Something went wrong with a feature object at " + featureObject["Group"] + " which has an invalid feature type (" + featureObject["Feature Type"] + ")" + "\n")
         return -1
     if "Priority" in featureObject:
         priority = featureObject["Priority"]
@@ -381,14 +381,14 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
                 "Formatted Region":""
             }
         if debugging:
-            log += ("This Region Feature has a length of " + str(len(coordinates)))
+            log += ("This Region Feature has a length of " + str(len(coordinates)) + "\n")
 
         # I have to make sure I catch any possible holes in the polygon, those would be a second item in the enclosing 
         # list for the multipolygon feature in the geoJSON, so I iterate over the list containing the coordinate lists
 
         for i in range(len(coordinates)):
             if debugging:
-                log += ("  Currently working on layer " + str(i + 1) + "/" + str(len(coordinates)))
+                log += ("  Currently working on layer " + str(i + 1) + "/" + str(len(coordinates)) + "\n")
 
             # Defining the current coordinate list as the current item in the list of all coordinate lists
 
@@ -398,7 +398,7 @@ def formatFeatureForGng (featureObject,featureType,debugging=False):
 
             if not i == 0:
                 if debugging:
-                    log += ("    Setting Color to grass for hole")
+                    log += ("    Setting Color to grass for hole" + "\n")
                 #color = "11823615"    # Hot Pink for debugging purposes
                 color = "COLOR_AoRground1"
             
@@ -494,7 +494,7 @@ def categoryMapping(category,airport,debugging = False):
     outputObject = dict(mappedObject["default"])
 
     if debugging:
-        log += ("Input Category: " + category + "\n  Default Group: " + outputObject["Group"])
+        log += ("Input Category: " + category + "\n  Default Group: " + outputObject["Group"] + "\n")
 
     # If I have found any suffixes I'll iterate through them and look for them in the definitions file, if they're defined we overwrite the default
     # info with the suffix info where it differs.
@@ -503,12 +503,12 @@ def categoryMapping(category,airport,debugging = False):
 
         # Because grass features sometimes lead to trouble here's an easy way to make sure they're actually found by the script
         if "gr" in splitCat and debugging:
-            log += ("Found a Grass feature for airport " + airport + str(splitCat))
+            log += ("Found a Grass feature for airport " + airport + str(splitCat) + "\n")
 
         suffix = splitCat[1]
 
         if debugging:
-            log += ("  Now working on suffix " + suffix)
+            log += ("  Now working on suffix " + suffix + "\n")
 
         # If a suffix doesn't exist for a certain category that has to be caught which is done with this function
         if not suffix in mappedObject["suffixes"]:
@@ -523,7 +523,7 @@ def categoryMapping(category,airport,debugging = False):
                     if search("([0-3]{1}[0-9]{1}[LCR]?)",splitCat[2]):
                         outputObject["Group"] = outputObject["Group"].replace("$1",splitCat[-1])
                     else:
-                        log += "Unmappable additional suffix " + splitCat[2] + " found in " + category
+                        log += "Unmappable additional suffix " + splitCat[2] + " found in " + category + "\n"
             elif len(splitCat) > 2:
                 if not search("([0-3]{1}[0-9]{1}[LCR]?)",suffix):
                     for additionalSuffix in suffixDescription["Additional Suffixes"]:
@@ -537,7 +537,7 @@ def categoryMapping(category,airport,debugging = False):
     outputObject["Group"] = outputObject["Group"].replace("$airport",airport)
 
     if debugging:
-        log += ("Output:\n  Group: " + outputObject["Group"] + "\n  ES Category: " + outputObject["ES Category"])
+        log += ("Output:\n  Group: " + outputObject["Group"] + "\n  ES Category: " + outputObject["ES Category"] + "\n")
 
     # If everything worked fine we can now return the object we just created wit the mapped info
 
@@ -591,11 +591,11 @@ def readGeoJSONFile(path,debugging = False):
         # If attributes are missing we cannot parse the feature so we log that and skip the feature
 
         if airport == None:
-            log += "Skipping feature because of missing \"apt\" attribute in file " + path + "\n"
+            log += "Skipping feature because of missing \"apt\" attribute in file " + path
             continue
         
         if "_dis" in category:
-            log += "Skipping disabled feature in file " + path + "\n"
+            log += "Skipping disabled feature in file " + path
             continue
 
         # Now let's use that helper function to map category of the current feature to the attributes found in the definitions
@@ -770,22 +770,6 @@ def hexColorCode(decimalColor):
     colorHex = '#' + hex(red)[2:].ljust(2,"0") + hex(green)[2:].ljust(2,"0") + hex(blue)[2:].ljust(2,"0")
     return colorHex
 
-# Once all the major operations are completed we can write all the collected errors into a log file
-
-with open (outputFolder + "log_" + dateStringLong + ".txt","w") as logFile:
-    colorString = "\nFollowing color codes were used in the generation of this sectorfile:\n"
-    for color in colorsUsed:
-        if color == "":
-            continue
-        try:
-            if int(color):
-                color = hexColorCode(int(color))
-        except:
-            pass
-        colorString += "    " + str(color) + "\n"
-    log += colorString
-    logFile.write(log)
-
 # From here on out we just need to write the files, first the sct file which also needs the color definitions from the definitions file
 
 def writeSctFile():
@@ -875,3 +859,19 @@ for color in colorsUsed:
             found = True
     if not found:
         log += ("Color " + color + " either misspelled or not defined!")
+
+# Once all the major operations are completed we can write all the collected errors into a log file
+
+with open (outputFolder + "log_" + dateStringLong + ".txt","w") as logFile:
+    colorString = "\nFollowing color codes were used in the generation of this sectorfile:\n"
+    for color in colorsUsed:
+        if color == "":
+            continue
+        try:
+            if int(color):
+                color = hexColorCode(int(color))
+        except:
+            pass
+        colorString += "    " + str(color) + "\n"
+    log += colorString
+    logFile.write(log)
