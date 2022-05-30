@@ -27,9 +27,10 @@ Input\GeoJSON
 ...
 ```
 What this means basically is that in my case the files in the LSZL and LSZC subfolders would be read and converted, the files in the LSGC and LSGG subfolders wouldn't , because they're one recursion level too deep.
+The file names themselves have no influence on how the converter uses the file and are up to your discretion, we have introduced an `ICAO_Type_Source` naming scheme to keep things organised.
 
 ## How the GeoJSON files should be formatted
-The GeoJSON files should have a normal header and be formatted as a `FeatureCollection`. I have been using CRS84 as a coordinate reference system, however any EGS 84 based Lon/Lat system should work. A sample header would look like this:
+The GeoJSON files should have a normal header and be formatted as a `FeatureCollection`. I have been using CRS84 as a coordinate reference system, however any WGS 84 based Lon/Lat system should work. A sample header would look like this:
 ```JSON
 "type": "FeatureCollection",
 "name": "LSZC_APRON_SATDRAW",
