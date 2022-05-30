@@ -6,7 +6,7 @@ Basically it's, well, a toolbox that allows you to convert  geoJSON  files from 
 As this is still an early "proof of concept" version, these tools currently only consist of a Python script with no dedicated user interface, however a GUI is in the works, expect two weeks™.
 
 The conversion from a geoJSON into Euroscope format depends heavily on the definitions file found [here](Input/Configuration/ES%20Exporter%20Definitions.json).
-Information on how to work with that file can be found in the readme (tbc).
+Information on how to work with that file can be found in the [readme](Input/Configuration).
 
 The script then reads the definitions and tries to match the `cat` label in the GeoJSON data to predefined maps from those definitions, and then distributes the geoJSON features into the respective euroscope categories, with the correct colors, feature type and group.
 
