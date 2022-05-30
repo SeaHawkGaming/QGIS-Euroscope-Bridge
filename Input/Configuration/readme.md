@@ -98,4 +98,18 @@ In this example we're defining a Runway Category with a Stopbar Suffix and ILS C
 
 ## Sectorfile headers
 
-To be completed.
+The two sectorfile headers also included in this folder serve as a basis to generate the stub sectorfile and contain some Euroscope configuration data as needed for the sector display.
+
+### .sct File Header
+This file serves as the basis of the sectorfile, it contains a general disclaimer at the top, then the Euroscope `[INFO]` section as described in the [VRC documentation](https://vrc.rosscarlson.dev/docs/doc.php?page=appendix_g) 
+
+The `$` formatted tags are insertion points for the code to know where things go, currently there's three of them in the sct file
+- `$colors` marks the insertion point for the color definitions for Euroscope so that color aliases can be used
+- `$geo` marks the insertion point for any line features
+- `$regions` marks the insertion point for any polygon features
+If you want you can also easily add more hardcoded data into this header file just like you would into a standard .sct file, for example if you want the airways in your stub sectorfile you can just copy/paste them from your existing sectorfile into this header.
+
+### .ese File Header
+This basically works the same as the .sct file heade, except that this one is for the sectorfile extension (duh). Again the general format of this file is the same as a normal .ese file so the [Euroscope documentation](https://www.euroscope.hu/wp/ese-files-description/) is a good source of info about this one too.
+
+There's also one `$` tag in this one, currently only the freetext labels go into this file, so obviously `$freetext` works as the insertion point for any point type features containing a label or other freetext.
